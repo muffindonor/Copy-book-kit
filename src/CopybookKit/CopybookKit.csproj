@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <PackageId>CopybookKit</PackageId>
+    <Description>Reads mainframe data files in .NET. Parses a COBOL copybook at run time and decodes EBCDIC text, zoned decimal, COMP-3 packed decimal and binary fields, including REDEFINES, OCCURS and OCCURS DEPENDING ON. No dependencies.</Description>
+    <PackageTags>cobol;copybook;ebcdic;mainframe;comp-3;packed-decimal;zoned-decimal;zos;etl</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CopybookKit.Tests" />
+  </ItemGroup>
+
+</Project>

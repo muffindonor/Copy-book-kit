@@ -1,0 +1,2 @@
+# The EBCDIC sample files are binary data that can look like text. Never convert line endings.
+* -text

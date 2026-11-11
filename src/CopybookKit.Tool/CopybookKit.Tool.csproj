@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <RootNamespace>CopybookKit.Tool</RootNamespace>
+    <AssemblyName>copybook</AssemblyName>
+    <RollForward>Major</RollForward>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>copybook</ToolCommandName>
+    <PackageId>CopybookKit.Tool</PackageId>
+    <Description>Command-line tool that converts mainframe data files to JSON Lines or CSV using a COBOL copybook. Handles EBCDIC, COMP-3, REDEFINES and OCCURS DEPENDING ON.</Description>
+    <PackageTags>cobol;copybook;ebcdic;mainframe;comp-3;csv;json;etl</PackageTags>
+    <!-- The tool package already holds its PDBs, so a separate symbol package adds nothing. -->
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CopybookKit\CopybookKit.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CopybookKit/CopybookKit.csproj" />
+    <Project Path="src/CopybookKit.Tool/CopybookKit.Tool.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CopybookKit.Tests/CopybookKit.Tests.csproj" />
+  </Folder>
+</Solution>
