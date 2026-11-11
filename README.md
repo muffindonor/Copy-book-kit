@@ -1,5 +1,11 @@
 # CopybookKit
 
+[![CI](https://github.com/muffindonor/Copy-book-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/muffindonor/Copy-book-kit/actions/workflows/ci.yml)
+[![CopybookKit on NuGet](https://img.shields.io/nuget/v/CopybookKit?label=CopybookKit)](https://www.nuget.org/packages/CopybookKit)
+[![CopybookKit downloads](https://img.shields.io/nuget/dt/CopybookKit?label=downloads)](https://www.nuget.org/packages/CopybookKit)
+[![CopybookKit.Tool on NuGet](https://img.shields.io/nuget/v/CopybookKit.Tool?label=CopybookKit.Tool)](https://www.nuget.org/packages/CopybookKit.Tool)
+[![CopybookKit.Tool downloads](https://img.shields.io/nuget/dt/CopybookKit.Tool?label=downloads)](https://www.nuget.org/packages/CopybookKit.Tool)
+
 Read mainframe data files in .NET. CopybookKit parses a COBOL copybook at run time and uses it to decode the records of a data file: EBCDIC text, zoned decimal, COMP-3 packed decimal and binary fields, including `REDEFINES`, `OCCURS` and `OCCURS DEPENDING ON`.
 
 It comes as a library with no dependencies, and as a command-line tool that converts a data file to JSON Lines or CSV.
@@ -122,7 +128,7 @@ The numbers:
 
 - The full 13.4 MB packed and binary file from AWS Mainframe Data Utilities, 89,280 records, converts to JSON in about 0.8 seconds and to CSV in about 0.7 seconds on a desktop PC, including starting the tool (median of 5 runs). Every record matched the AWS tool's output. The repository holds only its first 2,000 records.
 
-The sample files and their licences are listed in [tests/CopybookKit.Tests/Samples/NOTICE.md](https://github.com/muffindonor/copybook-kit/blob/main/tests/CopybookKit.Tests/Samples/NOTICE.md).
+The sample files and their licences are listed in [tests/CopybookKit.Tests/Samples/NOTICE.md](https://github.com/muffindonor/Copy-book-kit/blob/main/tests/CopybookKit.Tests/Samples/NOTICE.md).
 
 ## Limits
 
@@ -163,4 +169,4 @@ dotnet tool install --global CopybookKit.Tool --add-source artifacts --version 0
 
 ## Licence
 
-MIT. See [LICENSE](https://github.com/muffindonor/copybook-kit/blob/main/LICENSE). The sample data under `tests/CopybookKit.Tests/Samples` belongs to its authors and is under the Apache-2.0 licence.
+MIT. See [LICENSE](https://github.com/muffindonor/Copy-book-kit/blob/main/LICENSE). The sample data under `tests/CopybookKit.Tests/Samples` belongs to its authors and is under the Apache-2.0 licence.

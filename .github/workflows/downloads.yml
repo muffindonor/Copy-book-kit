@@ -1,0 +1,29 @@
+name: NuGet downloads
+
+# Once a day, reads the download counts of the NuGet packages and keeps the issue
+# "NuGet downloads" up to date. A comment is added, which notifies the repository
+# owner, whenever a count goes up. See scripts/nuget-downloads.js.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/downloads.yml
+      - scripts/nuget-downloads.js
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const report = require('./scripts/nuget-downloads.js');
+            await report({ github, context, core });

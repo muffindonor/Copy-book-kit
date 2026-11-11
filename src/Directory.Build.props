@@ -7,8 +7,8 @@
     <Authors>muffindonor</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/muffindonor/copybook-kit</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/muffindonor/copybook-kit.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/muffindonor/Copy-book-kit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/muffindonor/Copy-book-kit.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

@@ -21,3 +21,7 @@ Both packages, `CopybookKit` and `CopybookKit.Tool`, are published by `.github/w
    ```
 
 The workflow stops without publishing if the tag and the version differ or a test fails. Then delete the tag, fix the problem and tag again. A version that has reached NuGet can never be published again, so a fix after that needs a new version number.
+
+## Download counts
+
+`.github/workflows/downloads.yml` runs once a day and keeps an issue named **NuGet downloads** up to date with both packages' download counts. When a count goes up it comments on the issue and mentions the repository owner, so GitHub sends a notification. GitHub turns off scheduled workflows in a repository with no activity for 60 days, and emails a warning first; to keep it running, re-enable it under **Actions**.
