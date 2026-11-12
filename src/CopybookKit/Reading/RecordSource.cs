@@ -123,12 +123,9 @@ internal sealed class RdwRecordSource(Stream stream, bool leaveOpen) : RecordSou
 /// One record per line. Lines shorter than the layout are padded with spaces, because
 /// editors and file transfers often strip trailing spaces. Empty lines are skipped.
 /// </summary>
-internal sealed class LineRecordSource(Stream stream, int minimumLength, byte space, bool leaveOpen)
+internal sealed class LineRecordSource(Stream stream, int minimumLength, int maxLineLength, byte space, bool leaveOpen)
     : RecordSource(stream, leaveOpen)
 {
-    /// <summary>A line longer than this is taken as a sign that the file isn't text.</summary>
-    private const int MaxLineLength = 1 << 24;
-
     private readonly byte[] _chunk = new byte[1 << 16];
     private byte[] _line = new byte[Math.Max(minimumLength, 256)];
     private int _chunkStart;
@@ -194,16 +191,17 @@ internal sealed class LineRecordSource(Stream stream, int minimumLength, byte sp
             ReadOnlySpan<byte> available = _chunk.AsSpan(_chunkStart, _chunkEnd - _chunkStart);
             int newline = available.IndexOf((byte)'\n');
             int take = newline < 0 ? available.Length : newline;
-            if (length + take > MaxLineLength)
+            // A line longer than the limit is taken as a sign that the file isn't text.
+            if (take > maxLineLength - length)
             {
                 throw new RecordFormatException(
-                    $"Record {RecordNumber} is longer than {MaxLineLength >> 20} MB without a line break. " +
+                    $"Record {RecordNumber} is longer than {maxLineLength:N0} bytes without a line break. " +
                     "The file is probably not a text file. Check the record format.");
             }
 
-            if (_line.Length < Math.Max(length + take, minimumLength))
+            if (_line.Length < length + take)
             {
-                Array.Resize(ref _line, Math.Max(length + take, _line.Length * 2));
+                Array.Resize(ref _line, (int)Math.Min(Math.Max(length + take, (long)_line.Length * 2), Array.MaxLength));
             }
 
             available[..take].CopyTo(_line.AsSpan(length));

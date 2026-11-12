@@ -88,6 +88,12 @@ internal sealed class RecordWalker(Copybook copybook, ValueDecoder decoder)
     {
         int count = item.DependingOn is { } counter ? ReadCount(item, counter) : item.MaxOccurs;
         bool visible = item.IsGroup || !item.IsFiller;
+        if (!visible)
+        {
+            // FILLER has no value to read, so its occurrences are stepped over in one go.
+            return start + (item.Size * count);
+        }
+
         if (item.HasOccurs && visible)
         {
             visitor.BeginArray(item);
@@ -135,16 +141,35 @@ internal sealed class RecordWalker(Copybook copybook, ValueDecoder decoder)
         if (count == NotRead)
         {
             throw new RecordFormatException(
-                $"Record {decoder.RecordNumber}: {table.Name} depends on {counter.Name}, which has no valid value in this record.");
+                $"Record {decoder.RecordNumber}: {table.Name} depends on {counter.Name}, which has no valid value in this record." +
+                SelectorHint(table));
         }
 
         if (count < 0 || count > table.MaxOccurs)
         {
             throw new RecordFormatException(
                 $"Record {decoder.RecordNumber}: {table.Name} depends on {counter.Name}, which is {count}. " +
-                $"The copybook allows 0 to {table.MaxOccurs}.");
+                $"The copybook allows 0 to {table.MaxOccurs}." + SelectorHint(table));
         }
 
         return (int)count;
+    }
+
+    /// <summary>
+    /// A table inside a REDEFINES alternative is read for every record unless a selector
+    /// rules the alternative out, and in a record of another type its counter is garbage.
+    /// </summary>
+    private static string SelectorHint(DataItem table)
+    {
+        for (DataItem? item = table; item is not null; item = item.Parent)
+        {
+            if (item.Alternatives is not null && item.Parent is not null)
+            {
+                return $" {item.Name} is one of several layouts for the same bytes: if the file holds several record types, " +
+                    "choose the layout for each record with a selector (--select in the command-line tool).";
+            }
+        }
+
+        return string.Empty;
     }
 }

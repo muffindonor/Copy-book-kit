@@ -39,9 +39,10 @@ internal sealed class TextDecoder
     /// </summary>
     public ReadOnlySpan<char> Decode(ReadOnlySpan<byte> field)
     {
-        if (_buffer.Length < field.Length)
+        int needed = _table is null ? _encoding.GetMaxCharCount(field.Length) : field.Length;
+        if (_buffer.Length < needed)
         {
-            _buffer = new char[Math.Max(field.Length, _buffer.Length * 2)];
+            _buffer = new char[Math.Max(needed, _buffer.Length * 2)];
         }
 
         int length;
@@ -55,8 +56,6 @@ internal sealed class TextDecoder
         }
         else
         {
-            // A single-byte character never decodes to more than one char, and a
-            // multi-byte one never to more chars than it has bytes.
             length = _encoding.GetChars(field, _buffer);
         }
 

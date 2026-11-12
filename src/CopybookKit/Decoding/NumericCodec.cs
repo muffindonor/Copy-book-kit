@@ -259,9 +259,9 @@ internal static class NumericCodec
     public static bool TryToInt64(UInt128 magnitude, bool negative, int scale, out long value)
     {
         value = 0;
-        for (int i = scale; i < 0; i++)
+        if (!TryScaleUp(ref magnitude, scale))
         {
-            magnitude *= 10;
+            return false;
         }
 
         if (negative)
@@ -287,9 +287,9 @@ internal static class NumericCodec
     public static bool TryToDecimal(UInt128 magnitude, bool negative, int scale, out decimal value)
     {
         value = 0;
-        for (int i = scale; i < 0; i++)
+        if (!TryScaleUp(ref magnitude, scale))
         {
-            magnitude *= 10;
+            return false;
         }
 
         // decimal keeps a 96-bit magnitude.
@@ -299,6 +299,22 @@ internal static class NumericCodec
         }
 
         value = new decimal((int)(uint)magnitude, (int)(uint)(magnitude >> 32), (int)(uint)(magnitude >> 64), negative, (byte)Math.Max(scale, 0));
+        return true;
+    }
+
+    /// <summary>Multiplies by ten once for each position a negative scale adds. False when the result doesn't fit.</summary>
+    private static bool TryScaleUp(ref UInt128 magnitude, int scale)
+    {
+        for (int i = scale; i < 0; i++)
+        {
+            if (magnitude > UInt128.MaxValue / 10)
+            {
+                return false;
+            }
+
+            magnitude *= 10;
+        }
+
         return true;
     }
 

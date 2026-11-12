@@ -22,7 +22,7 @@ internal static class SourceText
         string[] lines = source.Replace("\u001A", string.Empty).ReplaceLineEndings("\n").Split('\n');
         for (int i = 0; i < lines.Length; i++)
         {
-            lines[i] = ExpandTabs(lines[i]);
+            lines[i] = RemoveControlCharacters(ExpandTabs(lines[i]));
         }
 
         bool isFixed = format switch
@@ -118,6 +118,26 @@ internal static class SourceText
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Control characters have no meaning in COBOL source. Turning them into spaces keeps
+    /// escape sequences out of item names and error messages, which end up on a terminal.
+    /// </summary>
+    private static string RemoveControlCharacters(string line)
+    {
+        if (!line.AsSpan().ContainsAnyInRange('\u0000', '\u001F') && !line.AsSpan().ContainsAnyInRange('\u007F', '\u009F'))
+        {
+            return line;
+        }
+
+        return string.Create(line.Length, line, static (span, source) =>
+        {
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i] = char.IsControl(source[i]) ? ' ' : source[i];
+            }
+        });
     }
 
     private static string ExpandTabs(string line)

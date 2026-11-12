@@ -534,7 +534,8 @@ public class ReaderTests
             new ReadOptions { Format = RecordFormat.LineSequential });
 
         RecordFormatException error = Assert.Throws<RecordFormatException>(() => reader.Read());
-        Assert.Contains("Record 1 is longer than 16 MB without a line break", error.Message);
+        Assert.Contains("Record 1 is longer than", error.Message);
+        Assert.Contains("without a line break", error.Message);
     }
 
     /// <summary>A stream that can't report its length and returns a few bytes at a time, as a pipe can.</summary>

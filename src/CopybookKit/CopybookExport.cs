@@ -48,7 +48,24 @@ public static class CopybookExport
     /// <param name="output">The writer to write CSV to.</param>
     /// <param name="limit">The most records to write, or null for all of them.</param>
     /// <returns>The number of records written.</returns>
-    public static long WriteCsv(this CopybookReader reader, TextWriter output, long? limit = null)
+    public static long WriteCsv(this CopybookReader reader, TextWriter output, long? limit = null) =>
+        WriteCsv(reader, output, limit, protectFormulas: false);
+
+    /// <summary>
+    /// Writes a header and each remaining record as one CSV row, with the columns of
+    /// <see cref="CopybookReader.Schema"/>. Null values are written as empty cells.
+    /// </summary>
+    /// <param name="reader">The reader to take records from.</param>
+    /// <param name="output">The writer to write CSV to.</param>
+    /// <param name="limit">The most records to write, or null for all of them.</param>
+    /// <param name="protectFormulas">
+    /// True to put an apostrophe before any text that starts with <c>=</c>, <c>+</c>,
+    /// <c>-</c>, <c>@</c>, a tab or a carriage return. A spreadsheet program runs such a
+    /// cell as a formula, so turn this on when the data comes from an untrusted source and
+    /// the file will be opened in one. Numbers are never changed.
+    /// </param>
+    /// <returns>The number of records written.</returns>
+    public static long WriteCsv(this CopybookReader reader, TextWriter output, long? limit, bool protectFormulas)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(output);
@@ -60,7 +77,7 @@ public static class CopybookExport
                 output.Write(',');
             }
 
-            WriteCell(output, columns[i].Name);
+            WriteCell(output, columns[i].Name, protectFormulas);
         }
 
         output.Write("\r\n");
@@ -80,7 +97,7 @@ public static class CopybookExport
                     case null:
                         break;
                     case string text:
-                        WriteCell(output, text);
+                        WriteCell(output, text, protectFormulas);
                         break;
                     case double number:
                         output.Write(number.ToString("R", CultureInfo.InvariantCulture));
@@ -99,8 +116,13 @@ public static class CopybookExport
     }
 
     /// <summary>Quotes a cell when it holds a comma, a quote, a line break or outer spaces (RFC 4180).</summary>
-    private static void WriteCell(TextWriter output, string text)
+    private static void WriteCell(TextWriter output, string text, bool protectFormulas)
     {
+        if (protectFormulas && text.Length > 0 && text[0] is '=' or '+' or '-' or '@' or '\t' or '\r')
+        {
+            text = "'" + text;
+        }
+
         bool quote = text.AsSpan().ContainsAny(",\"\r\n") || (text.Length > 0 && (text[0] == ' ' || text[^1] == ' '));
         if (!quote)
         {

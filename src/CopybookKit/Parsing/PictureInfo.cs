@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace CopybookKit.Parsing;
@@ -107,12 +108,15 @@ internal readonly record struct PictureInfo(bool IsNumeric, int Characters, int 
             if (i + 1 < picture.Length && picture[i + 1] == '(')
             {
                 int close = picture.IndexOf(')', i + 2);
-                if (close < 0 || !int.TryParse(picture.AsSpan(i + 2, close - i - 2), out int repeat) || repeat < 1)
+                if (close < 0
+                    || !int.TryParse(picture.AsSpan(i + 2, close - i - 2), NumberStyles.None, CultureInfo.InvariantCulture, out int repeat)
+                    || repeat < 1)
                 {
                     throw new CopybookException($"Picture '{original}' has a bad repeat count.", line);
                 }
 
-                if (expanded.Length + repeat > MaxExpandedLength)
+                // Compared this way round because the sum can overflow an int.
+                if (repeat > MaxExpandedLength - expanded.Length)
                 {
                     throw new CopybookException($"Picture '{original}' is too long.", line);
                 }
@@ -122,6 +126,11 @@ internal readonly record struct PictureInfo(bool IsNumeric, int Characters, int 
             }
             else
             {
+                if (expanded.Length >= MaxExpandedLength)
+                {
+                    throw new CopybookException($"Picture '{original}' is too long.", line);
+                }
+
                 expanded.Append(c);
             }
         }

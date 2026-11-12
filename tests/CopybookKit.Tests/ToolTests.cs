@@ -177,6 +177,67 @@ public class ToolTests
         Assert.Matches(@"^\d+\.\d+\.\d+", version);
     }
 
+    [Theory]
+    [InlineData("01 R.\n 05 F PIC XX(2147483647).", "is too long")]
+    [InlineData("01 R.\n 05 FILLER PIC X OCCURS 2000000000 TIMES.", "expands to more than")]
+    [InlineData("01 R.\n 05 F PIC X(1000000) OCCURS 1000 TIMES.", "--max-record-length")]
+    public void A_copybook_built_to_waste_memory_is_refused_with_a_plain_message(string copybook, string message)
+    {
+        string folder = Directory.CreateTempSubdirectory("copybookkit-").FullName;
+        try
+        {
+            string copybookPath = Path.Combine(folder, "hostile.cpy");
+            string dataPath = Path.Combine(folder, "empty.dat");
+            File.WriteAllText(copybookPath, copybook);
+            File.WriteAllBytes(dataPath, []);
+
+            (int exit, string output, string error) = Run("convert", dataPath, "--copybook", copybookPath);
+
+            Assert.Equal(1, exit);
+            Assert.Equal(string.Empty, output);
+            Assert.Contains(message, error);
+            Assert.DoesNotContain("   at ", error);
+            Assert.DoesNotContain("Exception", error);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Csv_safe_marks_text_a_spreadsheet_would_run_and_the_record_limit_can_be_set()
+    {
+        string folder = Directory.CreateTempSubdirectory("copybookkit-").FullName;
+        try
+        {
+            string copybookPath = Path.Combine(folder, "layout.cpy");
+            string dataPath = Path.Combine(folder, "data.txt");
+            File.WriteAllText(copybookPath, "01 R.\n 05 A PIC X(8).\n 05 B PIC S9(3) SIGN LEADING SEPARATE.");
+            File.WriteAllText(dataPath, "=1+1    -005\n@cmd    +010\n");
+            string[] common = ["convert", dataPath, "--copybook", copybookPath, "--encoding", "ascii", "--recfm", "text", "--to", "csv"];
+
+            (int exit, string output, _) = Run([.. common, "--csv-safe"]);
+            Assert.Equal(0, exit);
+            Assert.Equal("A,B\n'=1+1,-5\n'@cmd,10\n", output);
+
+            (exit, output, _) = Run(common);
+            Assert.Equal(0, exit);
+            Assert.Equal("A,B\n=1+1,-5\n@cmd,10\n", output);
+
+            (exit, _, string error) = Run([.. common, "--max-record-length", "11"]);
+            Assert.Equal(1, exit);
+            Assert.Contains("more than the limit of 11", error);
+
+            (exit, _, _) = Run([.. common, "--max-record-length", "12"]);
+            Assert.Equal(0, exit);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
     private static string[] Fill(string[] args) =>
         [.. args.Select(arg => arg.Replace("{data}", AccountData).Replace("{copybook}", AccountCopybook))];
 

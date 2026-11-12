@@ -56,11 +56,25 @@ public sealed class CopybookReader : IDisposable
         _rules = [.. options.Selectors.Select(rule => SelectorRule.Compile(copybook, rule))];
 
         int recordLength = options.RecordLength ?? copybook.Length;
+        if (recordLength < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), recordLength, "The record length must be at least 1.");
+        }
+
+        // Fixed and line records are held whole, so the layout's size is memory the reader reserves.
+        if (options.Format != RecordFormat.VariableRdw && recordLength > options.MaxRecordLength)
+        {
+            throw new ArgumentException(
+                $"The record length is {recordLength:N0} bytes, which is more than the limit of {options.MaxRecordLength:N0}. " +
+                "If the copybook is right, raise ReadOptions.MaxRecordLength (--max-record-length in the command-line tool).");
+        }
+
         _source = options.Format switch
         {
             RecordFormat.Fixed => new FixedRecordSource(stream, recordLength, leaveOpen),
             RecordFormat.VariableRdw => new RdwRecordSource(stream, leaveOpen),
-            RecordFormat.LineSequential => new LineRecordSource(stream, recordLength, _decoder.Space, leaveOpen),
+            RecordFormat.LineSequential => new LineRecordSource(
+                stream, recordLength, Math.Max(options.MaxRecordLength, recordLength), _decoder.Space, leaveOpen),
             _ => throw new ArgumentException($"Record format {options.Format} is not supported.", nameof(options)),
         };
     }
@@ -161,6 +175,11 @@ public sealed class CopybookReader : IDisposable
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(subscripts);
+        if (item.Ordinal >= Copybook.Items.Count || !ReferenceEquals(Copybook.Items[item.Ordinal], item))
+        {
+            throw new ArgumentException($"{item.Name} belongs to another copybook.", nameof(item));
+        }
+
         if (item.IsGroup || item.IsFiller)
         {
             throw new ArgumentException($"{item.Name} is not a named field, so it has no value of its own.", nameof(item));
@@ -200,14 +219,15 @@ public sealed class CopybookReader : IDisposable
         };
 
     /// <summary>Gets a numeric field as a decimal, or null when it has no value.</summary>
-    /// <exception cref="InvalidCastException">The field is text.</exception>
+    /// <exception cref="InvalidCastException">The field is text, or a floating-point value too large for a decimal.</exception>
     public decimal? GetDecimal(string name, params int[] subscripts) =>
         GetValue(name, subscripts) switch
         {
             null => null,
             decimal value => value,
             long value => value,
-            double value => (decimal)value,
+            double value when double.IsFinite(value) && Math.Abs(value) < 7.9e28 => (decimal)value,
+            double value => throw new InvalidCastException($"{name} is {value.ToString(CultureInfo.InvariantCulture)}, which a decimal can't hold."),
             _ => throw new InvalidCastException($"{name} is a text field."),
         };
 
@@ -251,9 +271,17 @@ public sealed class CopybookReader : IDisposable
         _decoder.Counting = !_counted;
         _jsonVisitor.Writer = writer;
         writer.WriteStartObject();
-        _walker.Walk(Record, data, _jsonVisitor);
+        try
+        {
+            _walker.Walk(Record, data, _jsonVisitor);
+        }
+        finally
+        {
+            // Also after a failure, so that reading the record again doesn't count its bad fields twice.
+            _counted = true;
+        }
+
         writer.WriteEndObject();
-        _counted = true;
     }
 
     /// <summary>Returns the current record as a JSON object.</summary>
@@ -298,8 +326,15 @@ public sealed class CopybookReader : IDisposable
         ReadOnlySpan<byte> data = RawRecord;
         Array.Clear(_slots);
         _decoder.Counting = !_counted;
-        _walker.Walk(Record, data, _flatVisitor);
-        _counted = true;
+        try
+        {
+            _walker.Walk(Record, data, _flatVisitor);
+        }
+        finally
+        {
+            _counted = true;
+        }
+
         _slotsReady = true;
     }
 

@@ -114,10 +114,17 @@ internal static class ConvertCommand
         string format = arguments.Choice("to", "json", ("json", "json"), ("csv", "csv"));
         string? outPath = arguments.Text("out");
         long? limit = arguments.Number("limit");
+        bool csvSafe = arguments.Flag("csv-safe");
         long? recordLength = arguments.Number("record-length");
         if (recordLength is 0 or > int.MaxValue)
         {
             throw new UsageException("--record-length must be at least 1.");
+        }
+
+        long? maxRecordLength = arguments.Number("max-record-length");
+        if (maxRecordLength is 0 or > int.MaxValue)
+        {
+            throw new UsageException("--max-record-length must be between 1 and 2147483647.");
         }
 
         var options = new ReadOptions
@@ -129,6 +136,7 @@ internal static class ConvertCommand
                 ("rdw", RecordFormat.VariableRdw),
                 ("text", RecordFormat.LineSequential)),
             RecordLength = (int?)recordLength,
+            MaxRecordLength = (int)(maxRecordLength ?? new ReadOptions().MaxRecordLength),
             RecordName = arguments.Text("record"),
             Trim = arguments.Choice("trim", TextTrim.Right, ("right", TextTrim.Right), ("both", TextTrim.Both), ("none", TextTrim.None)),
             InvalidData = arguments.Flag("strict") ? InvalidDataPolicy.Throw : InvalidDataPolicy.Null,
@@ -163,7 +171,7 @@ internal static class ConvertCommand
         if (format == "csv")
         {
             using var writer = new StreamWriter(output, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), 1 << 16, leaveOpen: true);
-            written = reader.WriteCsv(writer, limit);
+            written = reader.WriteCsv(writer, limit, csvSafe);
         }
         else
         {

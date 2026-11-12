@@ -95,6 +95,7 @@ internal static class CopybookParser
             bool variable = false;
             Layout(record.Item, 0, ref variable);
             AssignSlots(record.Item, ref nextSlot);
+            CountOccurrences(record.Item);
             SetOccursChains(record.Item, []);
         }
 
@@ -697,6 +698,27 @@ internal static class CopybookParser
         }
 
         next = (int)end;
+    }
+
+    /// <summary>
+    /// Counts every occurrence of every item. FILLER and groups take no slot, but reading
+    /// a record still visits each one, so a large OCCURS on them is limited in the same way.
+    /// </summary>
+    private static long CountOccurrences(DataItem item)
+    {
+        long each = 1;
+        foreach (DataItem child in item.Children)
+        {
+            each += CountOccurrences(child);
+        }
+
+        long total = each * item.MaxOccurs;
+        if (total > Copybook.MaxSlots)
+        {
+            throw new CopybookException($"The copybook expands to more than {Copybook.MaxSlots:N0} fields.", item.Line);
+        }
+
+        return total;
     }
 
     private static void SetOccursChains(DataItem item, DataItem[] enclosing)

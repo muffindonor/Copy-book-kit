@@ -95,6 +95,13 @@ public sealed class ReadOptions
     /// </summary>
     public int? RecordLength { get; set; }
 
+    /// <summary>
+    /// The longest record the reader will hold in memory, in bytes. Defaults to 16 MB. A
+    /// copybook that describes a longer record is refused when the reader is created, so
+    /// that a copybook from an untrusted source can't make it reserve gigabytes.
+    /// </summary>
+    public int MaxRecordLength { get; set; } = 16 * 1024 * 1024;
+
     /// <summary>The 01-level record to read when the copybook has several. Defaults to the first.</summary>
     public string? RecordName { get; set; }
 

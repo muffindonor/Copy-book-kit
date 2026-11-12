@@ -10,7 +10,21 @@ Read mainframe data files in .NET. CopybookKit parses a COBOL copybook at run ti
 
 It comes as a library with no dependencies, and as a command-line tool that converts a data file to JSON Lines or CSV.
 
-> Status: version 0.1.0. It has been tested against EBCDIC sample files published by AWS, but not yet against files from a production mainframe. See [Limits](#limits).
+> Status: version 0.1.1. It has been tested against EBCDIC sample files published by AWS, but not yet against files from a production mainframe. See [Limits](#limits).
+
+## Install
+
+The command-line tool:
+
+```bash
+dotnet tool install --global CopybookKit.Tool
+```
+
+The library, in a project:
+
+```bash
+dotnet add package CopybookKit
+```
 
 ## The problem it solves
 
@@ -50,6 +64,7 @@ Common options:
 | `--recfm fixed` | `fixed` (default), `rdw` for variable-length records with record descriptor words, or `text` for one record per line. |
 | `--select "TYPE:A=ACCOUNT-DATA,C=CUSTOMER-DATA"` | For a file with several record types: decode only the layout that matches each record. |
 | `--strict` | Fail on the first invalid number. By default it is written as null and counted. |
+| `--csv-safe` | In CSV, put an apostrophe before text a spreadsheet would run as a formula. Use it for data you don't trust. |
 
 Run `copybook --help` for the rest.
 
@@ -123,16 +138,28 @@ The tests don't only check the decoder against values worked out by hand. They r
 
 The numbers:
 
-- 316 tests pass on .NET 8 and on .NET 10 on Windows, and on .NET 10 on Linux (`dotnet test`).
-- `python scripts/mutation-check.py` adds 34 deliberate bugs to the code one at a time and checks that the tests notice each one. All 34 are caught.
-
+- 355 tests pass on .NET 8 and .NET 10, on Windows and on Linux (`dotnet test`).
+- `python scripts/mutation-check.py` adds 45 deliberate bugs to the code one at a time and checks that the tests notice each one. All 45 are caught.
+- Random tests invent copybooks, write records for them with a separate encoder, and check that every field reads back. They also damage the copybooks and the data, and check that the only result is a documented exception. `dotnet test` runs 300 seeds. A run of 300,000 seeds compared 5.7 million field values and tried 2.4 million damaged copybooks without a failure.
 - The full 13.4 MB packed and binary file from AWS Mainframe Data Utilities, 89,280 records, converts to JSON in about 0.8 seconds and to CSV in about 0.7 seconds on a desktop PC, including starting the tool (median of 5 runs). Every record matched the AWS tool's output. The repository holds only its first 2,000 records.
 
 The sample files and their licences are listed in [tests/CopybookKit.Tests/Samples/NOTICE.md](https://github.com/muffindonor/Copy-book-kit/blob/main/tests/CopybookKit.Tests/Samples/NOTICE.md).
 
+## Untrusted input
+
+A copybook or a data file may come from someone else, so the library is built to fail safely on hostile input:
+
+- A copybook either parses or throws `CopybookException`, and a data file is either read or throws `RecordFormatException`.
+- Sizes are capped: a picture string at 1 MB, a copybook at 1,000,000 items once its `OCCURS` clauses are multiplied out, and a record at `ReadOptions.MaxRecordLength` (16 MB unless you change it).
+- Control characters in a copybook are read as spaces, so names and error messages can't carry terminal escape sequences.
+- `WriteCsv(..., protectFormulas: true)` and `--csv-safe` stop a spreadsheet from running text fields as formulas.
+
+[SECURITY.md](https://github.com/muffindonor/Copy-book-kit/blob/main/SECURITY.md) lists what stays your job, and how to report a problem.
+
 ## Limits
 
 - **No production mainframe file has been read with it.** The EBCDIC test files are sample data published by AWS.
+- A record longer than 16 MB is refused unless `ReadOptions.MaxRecordLength` is raised, and a copybook that expands to more than 1,000,000 items is refused.
 - `SYNCHRONIZED` is refused, because slack bytes are not implemented.
 - `COPY`, `REPLACE` and `EXEC SQL INCLUDE` inside a copybook are refused. Expand nested copybooks first.
 - National and double-byte data (`PIC N`, `PIC G`, `DISPLAY-1`) and `POINTER` are refused.
@@ -157,14 +184,14 @@ dotnet test
 
 The tests need only the .NET SDK, with the .NET 8 and .NET 10 runtimes.
 
-Until the packages are on NuGet, install the tool from a local build:
+To install the tool from a local build instead of from NuGet:
 
 ```bash
 dotnet pack -c Release -o artifacts
 ```
 
 ```bash
-dotnet tool install --global CopybookKit.Tool --add-source artifacts --version 0.1.0
+dotnet tool install --global CopybookKit.Tool --add-source artifacts --version 0.1.1
 ```
 
 ## Licence
