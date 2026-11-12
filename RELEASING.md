@@ -4,8 +4,10 @@ Both packages, `CopybookKit` and `CopybookKit.Tool`, are published by `.github/w
 
 ## Once
 
-1. On nuget.org, create an API key with the **Push** scope, limited to the glob pattern `CopybookKit*`.
-2. In the GitHub repository, open **Settings > Environments**, create an environment named `nuget`, and add the key to it as a secret named `NUGET_API_KEY`.
+Publishing uses NuGet Trusted Publishing, so no API key is stored anywhere.
+
+1. On nuget.org, open your user menu > **Trusted Publishing** and add a policy: repository owner `muffindonor`, repository `Copy-book-kit`, workflow file `release.yml`, environment `nuget`, scope **Push new packages and package versions**, and the package pattern `CopybookKit*`.
+2. In the GitHub repository, open **Settings > Secrets and variables > Actions > Variables** and add a variable named `NUGET_USER` holding your nuget.org profile name (not your email).
 
 ## Each release
 
