@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/muffindonor/Copy-book-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/muffindonor/Copy-book-kit/actions/workflows/ci.yml)
 [![CopybookKit on NuGet](https://img.shields.io/nuget/v/CopybookKit?label=CopybookKit)](https://www.nuget.org/packages/CopybookKit)
-[![CopybookKit downloads](https://img.shields.io/nuget/dt/CopybookKit?label=downloads)](https://www.nuget.org/packages/CopybookKit)
+[![CopybookKit downloads](https://img.shields.io/nuget/dt/CopybookKit?label=library%20downloads)](https://www.nuget.org/packages/CopybookKit)
 [![CopybookKit.Tool on NuGet](https://img.shields.io/nuget/v/CopybookKit.Tool?label=CopybookKit.Tool)](https://www.nuget.org/packages/CopybookKit.Tool)
-[![CopybookKit.Tool downloads](https://img.shields.io/nuget/dt/CopybookKit.Tool?label=downloads)](https://www.nuget.org/packages/CopybookKit.Tool)
+[![CopybookKit.Tool downloads](https://img.shields.io/nuget/dt/CopybookKit.Tool?label=tool%20downloads)](https://www.nuget.org/packages/CopybookKit.Tool)
 
 Read mainframe data files in .NET. CopybookKit parses a COBOL copybook at run time and uses it to decode the records of a data file: EBCDIC text, zoned decimal, COMP-3 packed decimal and binary fields, including `REDEFINES`, `OCCURS` and `OCCURS DEPENDING ON`.
 
