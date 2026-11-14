@@ -7,18 +7,45 @@ const TITLE = 'NuGet downloads';
 const MARKER = /<!-- counts: (\{.*?\}) -->/;
 
 // Returns { id: { total, version } } with null for a package that is not on NuGet.
+// NuGet runs several copies of its search service, and they update download counts at
+// different times, so one can report 0 while another reports the real figure. Every copy
+// is asked, and the highest count wins.
 async function readCounts(packages) {
   const index = await getJson('https://api.nuget.org/v3/index.json');
-  const search = index.resources.find(r => r['@type'].startsWith('SearchQueryService'));
-  if (!search) {
+  const servers = [...new Set(index.resources
+    .filter(r => r['@type'].startsWith('SearchQueryService'))
+    .map(r => r['@id']))];
+  if (servers.length === 0) {
     throw new Error('The NuGet service index lists no search service.');
   }
 
   const counts = {};
   for (const id of packages) {
-    const result = await getJson(`${search['@id']}?q=packageid:${encodeURIComponent(id)}&prerelease=true&semVerLevel=2.0.0&take=1`);
-    const found = result.data.find(p => p.id.toLowerCase() === id.toLowerCase());
-    counts[id] = found ? { total: found.totalDownloads, version: found.version } : null;
+    let best = null;
+    let answered = 0;
+    let lastError = null;
+    for (const server of servers) {
+      let result;
+      try {
+        result = await getJson(`${server}?q=packageid:${encodeURIComponent(id)}&prerelease=true&semVerLevel=2.0.0&take=1`);
+      } catch (error) {
+        // One copy being down is no reason to skip the day.
+        lastError = error;
+        continue;
+      }
+
+      answered++;
+      const found = result.data.find(p => p.id.toLowerCase() === id.toLowerCase());
+      if (found && (best === null || found.totalDownloads > best.total)) {
+        best = { total: found.totalDownloads, version: found.version };
+      }
+    }
+
+    if (answered === 0) {
+      throw lastError;
+    }
+
+    counts[id] = best;
   }
   return counts;
 }
@@ -56,20 +83,29 @@ module.exports = async function report({ github, context, core, packages = PACKA
   const workflowUrl = `https://github.com/${owner}/${repo}/actions/workflows/downloads.yml`;
 
   const counts = await readCounts(packages);
-  const totals = Object.fromEntries(Object.entries(counts).map(([id, c]) => [id, c ? c.total : 0]));
-  const body = makeBody(counts, totals, today, workflowUrl);
-
   const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'all', per_page: 100 });
   const issue = issues.find(i => !i.pull_request && i.title === TITLE && i.user && i.user.type === 'Bot');
+
+  const match = issue ? MARKER.exec(issue.body || '') : null;
+  const previous = match ? JSON.parse(match[1]) : { date: null, totals: {} };
+
+  // Download counts never go down. A lower figure means a search copy is behind, so the
+  // highest count seen so far is kept, and a later recovery is not reported as new downloads.
+  for (const id of packages) {
+    const before = previous.totals[id] || 0;
+    if (counts[id] && counts[id].total < before) {
+      counts[id] = { ...counts[id], total: before };
+    }
+  }
+
+  const totals = Object.fromEntries(Object.entries(counts).map(([id, c]) => [id, Math.max(c ? c.total : 0, previous.totals[id] || 0)]));
+  const body = makeBody(counts, totals, today, workflowUrl);
 
   if (!issue) {
     const created = await github.rest.issues.create({ owner, repo, title: TITLE, body });
     core.info(`Created issue #${created.data.number}: ${JSON.stringify(totals)}`);
     return;
   }
-
-  const match = MARKER.exec(issue.body || '');
-  const previous = match ? JSON.parse(match[1]) : { date: null, totals: {} };
 
   const increases = packages
     .filter(id => totals[id] > (previous.totals[id] || 0))
